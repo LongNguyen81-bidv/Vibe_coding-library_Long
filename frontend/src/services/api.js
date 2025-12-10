@@ -62,6 +62,14 @@ export const categoriesAPI = {
   delete: (id) => api.delete(`/categories/${id}`),
 }
 
+// Profile API
+export const profileAPI = {
+  getProfile: () => api.get('/profile'),
+  updateProfile: (data) => api.put('/profile', data),
+  changePassword: (data) => api.put('/profile/change-password', data),
+}
+
 export default api
+
 
 
