@@ -1,0 +1,291 @@
+// ============================================
+// PRISMA SCHEMA - Hệ Thống Quản Lý Thư Viện
+// PostgreSQL / Supabase
+// ============================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["public", "auth"]
+}
+
+// ==================== ENUM TYPES ====================
+
+/// Vai trò người dùng
+enum UserRole {
+  reader
+  librarian
+  admin
+
+  @@map("user_role")
+  @@schema("public")
+}
+
+/// Trạng thái tài khoản
+enum UserStatus {
+  pending
+  active
+  disabled
+  rejected
+
+  @@map("user_status")
+  @@schema("public")
+}
+
+/// Trạng thái đơn mượn
+enum BorrowingStatus {
+  pending
+  borrowed
+  returned
+  rejected
+  overdue
+
+  @@map("borrowing_status")
+  @@schema("public")
+}
+
+/// Tình trạng sách khi trả
+enum BookCondition {
+  normal
+  damaged
+  lost
+
+  @@map("book_condition")
+  @@schema("public")
+}
+
+/// Trạng thái yêu cầu trả sách
+enum ReturnRequestStatus {
+  pending
+  confirmed
+  cancelled
+
+  @@map("return_request_status")
+  @@schema("public")
+}
+
+/// Lý do phạt
+enum FineReason {
+  late_return
+  damaged
+  lost
+
+  @@map("fine_reason")
+  @@schema("public")
+}
+
+/// Trạng thái phiếu phạt
+enum FineStatus {
+  unpaid
+  pending
+  rejected
+  paid
+
+  @@map("fine_status")
+  @@schema("public")
+}
+
+// ==================== MODELS ====================
+
+/// Bảng auth.users của Supabase (chỉ đọc, không quản lý bởi Prisma)
+model AuthUser {
+  id        String   @id @db.Uuid
+  email     String?  @unique
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  // Relation
+  profile Profile?
+
+  @@map("users")
+  @@schema("auth")
+}
+
+/// Thông tin mở rộng của người dùng
+model Profile {
+  id              String     @id @db.Uuid
+  name            String     @db.VarChar(50)
+  phone           String?    @db.VarChar(15)
+  address         String?    @db.VarChar(255)
+  role            UserRole   @default(reader)
+  status          UserStatus @default(pending)
+  rejectionReason String?    @map("rejection_reason")
+  borrowCount     Int        @default(0) @map("borrow_count")
+  totalFineAmount Decimal    @default(0) @map("total_fine_amount") @db.Decimal(12, 2)
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relation với auth.users
+  authUser AuthUser @relation(fields: [id], references: [id], onDelete: Cascade)
+
+  // Relations - Là người mượn
+  borrowings          Borrowing[]     @relation("UserBorrowings")
+  fines               Fine[]          @relation("UserFines")
+  // Relations - Là nhân viên xử lý
+  confirmedBorrowings Borrowing[]     @relation("ConfirmedByLibrarian")
+  rejectedBorrowings  Borrowing[]     @relation("RejectedByLibrarian")
+  confirmedReturns    ReturnRequest[] @relation("ReturnConfirmedBy")
+  confirmedFines      Fine[]          @relation("FineConfirmedBy")
+  rejectedFines       Fine[]          @relation("FineRejectedBy")
+
+  @@map("profiles")
+  @@schema("public")
+}
+
+/// Thể loại sách
+model Category {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String   @unique @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  books Book[]
+
+  @@index([name], map: "idx_categories_name")
+  @@map("categories")
+  @@schema("public")
+}
+
+/// Thông tin sách
+model Book {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String   @db.VarChar(100)
+  author            String   @db.VarChar(100)
+  isbn              String?  @unique @db.VarChar(17)
+  publishYear       Int      @map("publish_year")
+  categoryId        String   @map("category_id") @db.Uuid
+  description       String   @db.VarChar(255)
+  totalQuantity     Int      @map("total_quantity")
+  availableQuantity Int      @map("available_quantity")
+  borrowedQuantity  Int      @default(0) @map("borrowed_quantity")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  category   Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  borrowings Borrowing[]
+
+  @@index([categoryId], map: "idx_books_category_id")
+  @@index([name], map: "idx_books_name")
+  @@index([author], map: "idx_books_author")
+  @@index([name, author], map: "idx_books_name_author")
+  @@index([publishYear(sort: Desc)], map: "idx_books_publish_year")
+  @@map("books")
+  @@schema("public")
+}
+
+/// Đơn mượn sách
+model Borrowing {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String          @map("user_id") @db.Uuid
+  bookId          String          @map("book_id") @db.Uuid
+  borrowDate      DateTime        @default(dbgenerated("CURRENT_DATE")) @map("borrow_date") @db.Date
+  dueDate         DateTime        @map("due_date") @db.Date
+  returnDate      DateTime?       @map("return_date") @db.Date
+  status          BorrowingStatus @default(pending)
+  bookCondition   BookCondition?  @map("book_condition")
+  extendedCount   Int             @default(0) @map("extended_count")
+  rejectionReason String?         @map("rejection_reason")
+  confirmedBy     String?         @map("confirmed_by") @db.Uuid
+  confirmedAt     DateTime?       @map("confirmed_at") @db.Timestamptz(6)
+  rejectedBy      String?         @map("rejected_by") @db.Uuid
+  rejectedAt      DateTime?       @map("rejected_at") @db.Timestamptz(6)
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  user            Profile         @relation("UserBorrowings", fields: [userId], references: [id], onDelete: Cascade)
+  book            Book            @relation(fields: [bookId], references: [id], onDelete: Restrict)
+  confirmedByUser Profile?        @relation("ConfirmedByLibrarian", fields: [confirmedBy], references: [id], onDelete: SetNull)
+  rejectedByUser  Profile?        @relation("RejectedByLibrarian", fields: [rejectedBy], references: [id], onDelete: SetNull)
+  returnRequests  ReturnRequest[]
+  fines           Fine[]
+
+  @@index([userId], map: "idx_borrowings_user_id")
+  @@index([bookId], map: "idx_borrowings_book_id")
+  @@index([status], map: "idx_borrowings_status")
+  @@index([dueDate], map: "idx_borrowings_due_date")
+  @@index([userId, status], map: "idx_borrowings_user_status")
+  @@map("borrowings")
+  @@schema("public")
+}
+
+/// Yêu cầu trả sách
+model ReturnRequest {
+  id          String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  borrowingId String              @map("borrowing_id") @db.Uuid
+  requestDate DateTime            @default(dbgenerated("CURRENT_DATE")) @map("request_date") @db.Date
+  status      ReturnRequestStatus @default(pending)
+  confirmedBy String?             @map("confirmed_by") @db.Uuid
+  confirmedAt DateTime?           @map("confirmed_at") @db.Timestamptz(6)
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  borrowing       Borrowing @relation(fields: [borrowingId], references: [id], onDelete: Cascade)
+  confirmedByUser Profile?  @relation("ReturnConfirmedBy", fields: [confirmedBy], references: [id], onDelete: SetNull)
+
+  @@index([borrowingId], map: "idx_return_requests_borrowing_id")
+  @@index([status], map: "idx_return_requests_status")
+  @@map("return_requests")
+  @@schema("public")
+}
+
+/// Mức phạt (cấu hình bởi Admin)
+model FineLevel {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @unique @db.VarChar(25)
+  amount      Decimal  @db.Decimal(10, 2)
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  fines Fine[]
+
+  @@index([name], map: "idx_fine_levels_name")
+  @@map("fine_levels")
+  @@schema("public")
+}
+
+/// Phiếu phạt
+model Fine {
+  id              String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String     @map("user_id") @db.Uuid
+  borrowingId     String     @map("borrowing_id") @db.Uuid
+  fineLevelId     String     @map("fine_level_id") @db.Uuid
+  reason          FineReason
+  amount          Decimal    @db.Decimal(10, 2)
+  status          FineStatus @default(unpaid)
+  paymentProof    String?    @map("payment_proof")
+  rejectionReason String?    @map("rejection_reason")
+  note            String?    @db.VarChar(500)
+  fineDate        DateTime   @default(dbgenerated("CURRENT_DATE")) @map("fine_date") @db.Date
+  confirmedBy     String?    @map("confirmed_by") @db.Uuid
+  confirmedAt     DateTime?  @map("confirmed_at") @db.Timestamptz(6)
+  rejectedBy      String?    @map("rejected_by") @db.Uuid
+  rejectedAt      DateTime?  @map("rejected_at") @db.Timestamptz(6)
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  user            Profile   @relation("UserFines", fields: [userId], references: [id], onDelete: Cascade)
+  borrowing       Borrowing @relation(fields: [borrowingId], references: [id], onDelete: Cascade)
+  fineLevel       FineLevel @relation(fields: [fineLevelId], references: [id], onDelete: Restrict)
+  confirmedByUser Profile?  @relation("FineConfirmedBy", fields: [confirmedBy], references: [id], onDelete: SetNull)
+  rejectedByUser  Profile?  @relation("FineRejectedBy", fields: [rejectedBy], references: [id], onDelete: SetNull)
+
+  @@index([userId], map: "idx_fines_user_id")
+  @@index([borrowingId], map: "idx_fines_borrowing_id")
+  @@index([fineLevelId], map: "idx_fines_fine_level_id")
+  @@index([status], map: "idx_fines_status")
+  @@index([userId, status], map: "idx_fines_user_status")
+  @@map("fines")
+  @@schema("public")
+}
