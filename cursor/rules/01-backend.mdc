@@ -1,0 +1,46 @@
+---
+description: Luật cho backend, chỉ áp dụng khi làm backend
+alwaysApply: false
+---
+# Backend Development Rules
+ 
+## 1. Style & Structure
+- **Architecture:** Layered (Controller -> Service -> Repository).
+  - *Controller:* Validate input, parse request, send response. No business logic.
+  - *Service:* Business logic, handle errors, transactions.
+  - *Repository:* Direct DB access (Prisma).
+- **Naming:**
+  - Files/Folders: `snake_case`
+  - Classes: `PascalCase`
+  - Variables/Functions: `camelCase`
+- **Modules:** Prefer ES Modules. Avoid circular imports. Shared constants in `src/config/constants.js`.
+- **Config:** Use `dotenv`. Never hardcode secrets.
+ 
+## 2. Error Handling & Response
+- **Global Handler:** Use middleware for centralized error handling.
+- **Response Format:** Unified JSON `{ success: boolean, data?: any, error?: { code, message } }`.
+- **No Leaks:** Never send stack traces to the client in production.
+- **Exceptions:** Throw custom error classes (e.g., `AppError`) with status codes in Services.
+ 
+## 3. Security
+- **Auth:** Middleware required for protected routes. Check roles/permissions in Service layer.
+- **Input:** Validate input (Zod/Joi) middleware before Controller. Sanitize output.
+- **Hardening:** Use Helmet, Rate Limiting, and strict CORS settings.
+- **Logging:** Never log credentials, tokens, or PII.
+ 
+## 4. Database & Performance
+- **Async:** Always use `async/await`. Avoid blocking the Event Loop.
+- **Queries:** Use Pagination for lists. Select only necessary fields (no `select *`).
+- **Integrity:** Use Transactions for multi-step write operations.
+- **Caching:** Cache heavy/static data (Redis/Local) with TTL.
+- **Time:** Store dates in UTC.
+ 
+## 5. API & Documentation
+- **Versioning:** Prefix routes with `/api/v1`.
+- **Contracts:** Keep endpoints backward compatible.
+- **Docs:** Update route comments/Swagger when adding endpoints (Method, Path, Auth, Params).
+ 
+## 6. Code Quality
+- **Review:** Run lint/format before commit. Keep functions short and single-purpose.
+- **Testing:** Unit test critical Services. Mock external dependencies (DB, APIs).
+- **Logs:** Use Structured JSON Logging. Include `requestId` for tracing. Level: info/warn/error.

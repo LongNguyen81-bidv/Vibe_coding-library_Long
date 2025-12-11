@@ -42,6 +42,28 @@ const registerSchema = Joi.object({
     })
 });
 
+const loginSchema = Joi.object({
+  email: Joi.string()
+    .email({ tlds: { allow: false } })
+    .required()
+    .messages({
+      'string.email': 'Email không đúng định dạng',
+      'string.empty': 'Email không được để trống',
+      'any.required': 'Email không được để trống'
+    }),
+  
+  password: Joi.string()
+    .min(8)
+    .max(16)
+    .required()
+    .messages({
+      'string.empty': 'Mật khẩu không được để trống',
+      'string.min': 'Mật khẩu phải từ 8-16 ký tự',
+      'string.max': 'Mật khẩu phải từ 8-16 ký tự',
+      'any.required': 'Mật khẩu không được để trống'
+    })
+});
+
 const validate = (schema) => {
   return (req, res, next) => {
     const { error } = schema.validate(req.body, { abortEarly: false });
@@ -65,6 +87,7 @@ const validate = (schema) => {
 
 module.exports = {
   registerSchema,
+  loginSchema,
   validate
 };
 

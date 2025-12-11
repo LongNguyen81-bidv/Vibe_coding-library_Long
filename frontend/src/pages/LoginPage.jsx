@@ -11,6 +11,7 @@ import {
   HiOutlineCheckCircle
 } from 'react-icons/hi'
 import { useAuth } from '../contexts/AuthContext'
+import { authAPI } from '../services/api'
 
 const LoginPage = () => {
   const navigate = useNavigate()
@@ -42,14 +43,37 @@ const LoginPage = () => {
   const onSubmit = async (data) => {
     setIsLoading(true)
     try {
-      // TODO: Implement login API when backend is ready
-      // const response = await authAPI.login(data)
-      // login(response.data.user, response.data.token)
+      const response = await authAPI.login(data)
       
-      // Temporary: Show message that login is not implemented yet
-      toast.error('Chức năng đăng nhập đang được phát triển')
+      if (response.data.success) {
+        // Save user and token
+        login(response.data.data.user, response.data.data.token)
+        
+        // Show success message
+        toast.success('Đăng nhập thành công!', {
+          duration: 2000
+        })
+        
+        // Redirect based on role
+        const role = response.data.data.user.role
+        let redirectPath = '/'
+        
+        if (role === 'reader') {
+          redirectPath = '/reader/dashboard'
+        } else if (role === 'librarian') {
+          redirectPath = '/librarian/dashboard'
+        } else if (role === 'admin') {
+          redirectPath = '/admin/dashboard'
+        }
+        
+        // Navigate to dashboard
+        setTimeout(() => {
+          navigate(redirectPath, { replace: true })
+        }, 500)
+      }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Đăng nhập thất bại')
+      const errorMessage = error.response?.data?.message || 'Đăng nhập thất bại'
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -224,5 +248,6 @@ const LoginPage = () => {
 }
 
 export default LoginPage
+
 
 

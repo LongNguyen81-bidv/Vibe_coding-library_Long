@@ -1,0 +1,26 @@
+---
+description: Luật chung cho project
+alwaysApply: true
+---
+# Cấu trúc dự án
+Sử dụng cấu trúc dự án như sau. Mỗi khi tạo file, thư mục mới, tạo trong thư mục tương ứng. Mỗi khi có thư mục mới, cần cập nhật lại cấu trúc dự án này.
+ 
+## Cấu trúc dự án (hiện tại)
+- backend/: Node.js Express API, Prisma, JWT, các route/controller/service/validator theo tài nguyên.
+  - src/config/: cấu hình dùng chung (env, hằng số).
+  - src/controllers|services|validators|routes/: tách lớp cho từng module (auth, books, borrowings, penalties, roles, users...).
+  - prisma/: schema và migrate.
+- frontend/: React SPA + Tailwind/PostCSS, tách layout/pages/services.
+  - src/components/: header/footer, route bảo vệ.
+  - src/contexts/: context đăng nhập.
+  - src/pages/: màn hình chức năng (sách, mượn/trả, phạt, người dùng...).
+  - src/services/: gọi API theo module.
+- database/: schema và migrations.
+- design/: tài liệu luồng/màn hình.
+- assets/: hình ảnh hỗ trợ tài liệu.
+- PRD.md: đặc tả sản phẩm.
+- common_errors.md: lỗi thường gặp.
+ 
+# Quy trình lưu bug:
+- Khi fix xong một bug, luôn hỏi người dùng có muốn ghi nhận bug và solution vào `common_errors.md` hay không. Nếu có, bổ sung mô tả ngắn gọn và cách xử lý.
+

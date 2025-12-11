@@ -1,0 +1,1 @@
+Tạo branch mới từ main và chuyển sang branch mới cho 1 tính năng mới hoặc sửa bug. Nếu người dùng chưa chỉ định tên branch thì hỏi lại người dùng. Sử dụng quy tắc đặt tên branch theo tính năng hoặc bug.

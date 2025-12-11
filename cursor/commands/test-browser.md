@@ -1,0 +1,1 @@
+Sử dụng @Browser để thay người dùng test thử tính năng vừa tạo hoặc vừa sửa bằng cách tự nhập liệu vào các trường và nhấn các nút theo mô tả trong luồng công việc.

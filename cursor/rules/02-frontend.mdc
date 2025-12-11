@@ -1,0 +1,82 @@
+---
+
+description: Luật cho frontend, chỉ áp dụng khi làm frontend
+
+alwaysApply: false
+
+---
+ 
+# Frontend Development Rules (React + Tailwind)
+ 
+## 1. Architecture & File Structure
+
+- **Pattern:** Feature-based structure combined with technical layers (`src/features/` or `src/modules/`).
+
+  - *Pages:* Route handlers, layout composition, data fetching initiation.
+
+  - *Components:* Reusable UI blocks. Separate "Smart" (Logic/Data) and "Dumb" (UI only) components.
+
+- **Naming:**
+
+  - Components: `PascalCase.jsx` (e.g., `BookList.jsx`).
+
+  - Folders: `kebab-case`.
+
+  - **Avoid Index Imports:** Do not use `index.jsx` for component logic. Use `BookList.jsx` and re-export via `index.js` to avoid "index hell" in tabs.
+
+- **Services:** Centralized API definitions in `src/services/`. Return clean data or standardized errors.
+ 
+## 2. Component Implementation
+
+- **Functional Only:** Use Function Components + Hooks. No Class components.
+
+- **Props:** Always destructure props. Use TypeScript interfaces or PropTypes.
+
+- **Hooks:** Extract complex logic into custom hooks (prefix `use...`).
+
+- **Logic:** Keep components pure. Avoid side effects outside `useEffect` or Event Handlers.
+ 
+## 3. Styling (Tailwind CSS)
+
+- **Engine:** Tailwind CSS.
+
+- **Dynamic Classes:** **MANDATORY:** Use `clsx` + `tailwind-merge` (or a `cn()` utility) to merge classes conditionally. Never concatenate strings manually to avoid conflicts.
+
+- **Structure:** Mobile-first (`sm:`, `md:`). Avoid inline styles (`style={{}}`).
+
+- **Consistency:** Use `tailwind.config.js` for colors/spacing. Create base UI components (Button, Input) instead of repeating long class strings.
+ 
+## 4. Data Management & Forms
+
+- **Server State:** Prioritize **TanStack Query (React Query)** over `useEffect` for data fetching (handles caching/loading/error auto).
+
+- **Global State:** Minimal Context usage (Auth/Theme only). Use Zustand/Redux for complex client state.
+
+- **Forms:** Use **React Hook Form** combined with **Zod** for schema validation.
+
+- **UX:** Display validation errors immediately below fields. Handle "Loading" and "Empty" states explicitly.
+ 
+## 5. Performance & Security
+
+- **Optimization:** Use `useMemo`/`useCallback` for referential equality in heavy trees or when passing props to memoized children.
+
+- **Lazy Loading:** Use `React.lazy` and `Suspense` for routes and heavy modals.
+
+- **Security:** Sanitize inputs before rendering (`dangerouslySetInnerHTML`). Never store sensitive secrets/keys in frontend code.
+ 
+## 6. Quality Assurance & Testing
+
+- **Philosophy:** Follow the **"Testing Trophy"**. Prioritize **Integration Tests** over Unit Tests for Components.
+
+- **Tools:** Vitest + React Testing Library (RTL).
+
+- **Strategy:**
+
+  - *Components:* Test **Behavior**, not Implementation. (e.g., "User clicks button -> Text appears", NOT "State variable changes").
+
+  - *Utilities/Hooks:* Unit Test inputs/outputs.
+
+  - *API:* **Mock** all network requests (using MSW or Vitest mocks) in tests.
+
+- **Linting:** Run ESLint and Prettier before commit.
+ 

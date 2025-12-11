@@ -1,0 +1,1 @@
+Tự động pull code từ remote vào local. Nếu có confict, gợi ý cách giải quyết.
