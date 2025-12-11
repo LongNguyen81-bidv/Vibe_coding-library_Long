@@ -22,10 +22,12 @@ const updateProfileSchema = Joi.object({
   address: Joi.string()
     .min(1)
     .max(255)
-    .allow(null, '')
+    .required()
     .messages({
+      'string.empty': 'Địa chỉ không được để trống',
       'string.min': 'Địa chỉ không được để trống',
-      'string.max': 'Địa chỉ không được vượt quá 255 ký tự'
+      'string.max': 'Địa chỉ không được vượt quá 255 ký tự',
+      'any.required': 'Địa chỉ không được để trống'
     })
 });
 

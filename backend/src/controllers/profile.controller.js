@@ -74,19 +74,14 @@ const updateProfile = async (req, res) => {
 
     // Update profile
     const updateData = {
-      name
+      name,
+      address
     };
     
     if (phone !== undefined && phone !== null && phone !== '') {
       updateData.phone = phone;
     } else {
       updateData.phone = null;
-    }
-    
-    if (address !== undefined && address !== null && address !== '') {
-      updateData.address = address;
-    } else {
-      updateData.address = null;
     }
 
     const updatedProfile = await prisma.profile.update({

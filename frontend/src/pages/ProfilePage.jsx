@@ -43,10 +43,13 @@ const ProfilePage = () => {
     register: registerPassword,
     handleSubmit: handleSubmitPassword,
     formState: { errors: passwordErrors },
-    reset: resetPassword
+    reset: resetPassword,
+    watch: watchPassword
   } = useForm({
     mode: 'onChange'
   })
+
+  const newPasswordValue = watchPassword('newPassword')
 
   useEffect(() => {
     fetchProfile()
@@ -232,7 +235,7 @@ const ProfilePage = () => {
             {/* Address */}
             <div>
               <label htmlFor="address" className="label">
-                Địa chỉ
+                Địa chỉ <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <HiOutlineLocationMarker className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -242,6 +245,7 @@ const ProfilePage = () => {
                   placeholder="Nhập địa chỉ"
                   className={`input pl-12 ${profileErrors.address ? 'input-error' : ''}`}
                   {...registerProfile('address', {
+                    required: 'Địa chỉ không được để trống',
                     maxLength: {
                       value: 255,
                       message: 'Địa chỉ không được vượt quá 255 ký tự'
@@ -473,8 +477,7 @@ const ProfilePage = () => {
                   {...registerPassword('confirmPassword', {
                     required: 'Mật khẩu xác nhận không được để trống',
                     validate: (value) => {
-                      const newPassword = document.getElementById('newPassword').value
-                      return value === newPassword || 'Mật khẩu xác nhận không khớp'
+                      return value === newPasswordValue || 'Mật khẩu xác nhận không khớp'
                     }
                   })}
                 />
